@@ -28,8 +28,8 @@
       </div>
     </div>
     <!-- Preview selected predefined logo -->
-    <div v-if="selectedLogo" class="flex items-center space-x-3 mt-2">
-      <div class="w-12 h-12 bg-white border rounded flex items-center justify-center">
+    <div v-if="selectedLogo" class="flex items-center space-x-3 mt-2 border-2 border-[#0070CC] bg-white rounded-md p-2">
+      <div class="w-12 h-12 bg-white rounded flex items-center justify-center">
         <img :src="selectedLogo.path" :alt="selectedLogo.name" class="max-w-full max-h-full object-contain" />
       </div>
       <span class="text-md font-medium text-gray-800">{{ selectedLogo.name }}</span>
