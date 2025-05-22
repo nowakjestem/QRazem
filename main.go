@@ -73,28 +73,33 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
 func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Color) image.Image {
    // Ustal docelowy rozmiar loga (jako procent szerokości QR), zachowując proporcje SVG
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
-   maxDim := int(float64(w) * scale)
+   // padding rate (fraction of width) for logo inside square
+   const paddingRate = 0.02
+   // raw square side: defines area to clear under logo
+   rawSquare := int(float64(w) * scale)
+   // inner max dimension for logo (square side minus padding on each side)
+   innerMax := rawSquare - int(float64(w)*paddingRate*2)
    icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
    if err != nil {
        return base
    }
    // Oryginalne proporcje SVG
-   origW := int(icon.ViewBox.W)
-   origH := int(icon.ViewBox.H)
+   origW := icon.ViewBox.W
+   origH := icon.ViewBox.H
    var logoW, logoH int
    if origW > 0 && origH > 0 {
-       ratio := float64(origH) / float64(origW)
-       // Skaluj szerokość, dopasuj wysokość
-       logoW = maxDim
-       logoH = int(float64(maxDim) * ratio)
-       // Jeśli wysokość przewyższa maxDim, przeskaluj odwrotnie
-       if logoH > maxDim {
-           logoH = maxDim
-           logoW = int(float64(maxDim) / ratio)
+       ratio := origH / origW
+       // Preserve aspect ratio within innerMax
+       if ratio <= 1 {
+           logoW = innerMax
+           logoH = int(float64(innerMax) * ratio)
+       } else {
+           logoH = innerMax
+           logoW = int(float64(innerMax) / ratio)
        }
    } else {
-       // Fallback na kwadrat jeśli brak danych
-       logoW, logoH = maxDim, maxDim
+       // Fallback to square
+       logoW, logoH = innerMax, innerMax
    }
    icon.SetTarget(0, 0, float64(logoW), float64(logoH))
 	rgba := image.NewRGBA(image.Rect(0, 0, logoW, logoH))
@@ -108,16 +113,10 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
    dst := image.NewRGBA(base.Bounds())
    // Draw base QR code
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Clear square area under logo to background color (preserve square padding)
-   // Compute square side length
-   sqSide := logoW
-   if logoH > sqSide {
-       sqSide = logoH
-   }
-   // Compute top-left of square
-   sqOffsetX := (w - sqSide) / 2
-   sqOffsetY := (h - sqSide) / 2
-   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+sqSide, sqOffsetY+sqSide), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Clear square area under logo to background color (rawSquare side)
+   sqOffsetX := (w - rawSquare) / 2
+   sqOffsetY := (h - rawSquare) / 2
+   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare), &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Draw logo on top
    draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), rgba, image.Point{}, draw.Over)
    return dst
@@ -126,14 +125,32 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
 // Rysuje raster (PNG/JPEG) logo na środku QR code, z wyczyszczeniem obszaru pod logiem
 func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
-   // Resize logo to percentage of QR width
-   maxDim := int(float64(w) * scale)
+   const paddingRate = 0.02
+   rawSquare := int(float64(w) * scale)
+   innerMax := rawSquare - int(float64(w)*paddingRate*2)
    img, _, err := image.Decode(bytes.NewReader(imgData))
    if err != nil {
        return base
    }
-   // Preserve aspect ratio
-   scaled := resize.Resize(uint(maxDim), 0, img, resize.Lanczos3)
+   // Preserve aspect ratio within innerMax
+   origBounds := img.Bounds()
+   origW := origBounds.Dx()
+   origH := origBounds.Dy()
+   var targetW, targetH uint
+   if origW > 0 && origH > 0 {
+       ratio := float64(origH) / float64(origW)
+       if ratio <= 1 {
+           targetW = uint(innerMax)
+           targetH = uint(float64(innerMax) * ratio)
+       } else {
+           targetH = uint(innerMax)
+           targetW = uint(float64(innerMax) / ratio)
+       }
+   } else {
+       targetW = uint(innerMax)
+       targetH = uint(innerMax)
+   }
+   scaled := resize.Resize(targetW, targetH, img, resize.Lanczos3)
 
    // Center position
    logoW := scaled.Bounds().Dx()
@@ -144,13 +161,9 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
    // Draw base QR code
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
    // Clear square area under logo to background color
-   sqSide := logoW
-   if logoH > sqSide {
-       sqSide = logoH
-   }
-   sqOffsetX := (base.Bounds().Dx() - sqSide) / 2
-   sqOffsetY := (base.Bounds().Dy() - sqSide) / 2
-   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+sqSide, sqOffsetY+sqSide), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   sqOffsetX := (w - rawSquare) / 2
+   sqOffsetY := (h - rawSquare) / 2
+   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare), &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Draw logo on top
    draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), scaled, image.Point{}, draw.Over)
    return dst
