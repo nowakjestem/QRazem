@@ -17,6 +17,8 @@ import (
    "path"
    "strconv"
    "strings"
+   "encoding/base64"
+   "image/jpeg"
 
    "github.com/nfnt/resize"
    "github.com/skip2/go-qrcode"
@@ -26,9 +28,63 @@ import (
 
 // QRRequest - struktura do odczytu JSON z frontend
 type QRRequest struct {
-	Text    string `json:"text"`
-	QRColor string `json:"qr_color"`
-	BgColor string `json:"bg_color"`
+   Text    string `json:"text"`
+   QRColor string `json:"qr_color"`
+   BgColor string `json:"bg_color"`
+   // Download format: svg, png, jpg
+   Format  string `json:"format"`
+   // Image size (px)
+   Size    int    `json:"size"`
+}
+
+// Build SVG representation of the QR code with optional embedded logo
+func generateSVG(code, qrCol, bgCol string, size int, svgLogo []byte, logoName string) ([]byte, error) {
+   // Create QR bitmap
+   qrColor, _ := parseHexColor(qrCol)
+   bgColor, _ := parseHexColor(bgCol)
+   qr, err := qrcode.New(code, qrcode.Highest)
+   if err != nil {
+       return nil, err
+   }
+   qr.BackgroundColor = bgColor
+   qr.ForegroundColor = qrColor
+   bitmap := qr.Bitmap()
+   modules := len(bitmap)
+   // Compute module pixel size and margin
+   moduleSize := float64(size) / float64(modules)
+   margin := (float64(size) - moduleSize*float64(modules)) / 2
+   // Build SVG
+   var sb strings.Builder
+   sb.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+   sb.WriteString(fmt.Sprintf("<svg width=\"%d\" height=\"%d\" xmlns=\"http://www.w3.org/2000/svg\">", size, size))
+   // background
+   sb.WriteString(fmt.Sprintf("<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>", bgCol))
+   // modules
+   fgHex := qrCol
+   for y := 0; y < modules; y++ {
+       for x := 0; x < modules; x++ {
+           if bitmap[y][x] {
+               xPos := margin + moduleSize*float64(x)
+               yPos := margin + moduleSize*float64(y)
+               sb.WriteString(fmt.Sprintf(
+                   "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" fill=\"%s\"/>",
+                   xPos, yPos, moduleSize, moduleSize, fgHex))
+           }
+       }
+   }
+   // embed logo if SVG
+   if len(svgLogo) > 0 && strings.ToLower(path.Ext(logoName)) == ".svg" {
+       // base64 encode raw SVG
+       enc := base64.StdEncoding.EncodeToString(svgLogo)
+       // place logo centered at 24% area
+       rawSide := float64(size) * 0.24
+       logoOffset := (float64(size) - rawSide) / 2
+       sb.WriteString(fmt.Sprintf(
+           "<image x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" href=\"data:image/svg+xml;base64,%s\" preserveAspectRatio=\"xMidYMid meet\"/>",
+           logoOffset, logoOffset, rawSide, rawSide, enc))
+   }
+   sb.WriteString("</svg>")
+   return []byte(sb.String()), nil
 }
 
 func parseHexColor(s string) (c color.Color, err error) {
@@ -233,14 +289,43 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Content-Type", "image/png")
-	var buf bytes.Buffer
-	if err := png.Encode(&buf, qrImg); err != nil {
-		http.Error(w, "encoding error", 500)
-		return
-	}
-	w.WriteHeader(200)
-	w.Write(buf.Bytes())
+           // Handle download format
+           format := strings.ToLower(qrReq.Format)
+           size := qrReq.Size
+           if size <= 0 {
+               size = qrSize
+           }
+           switch format {
+           case "svg":
+               svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
+               if err != nil {
+                   http.Error(w, err.Error(), 500)
+                   return
+               }
+               w.Header().Set("Content-Type", "image/svg+xml")
+               w.Write(svgBytes)
+               return
+           case "jpg", "jpeg":
+               w.Header().Set("Content-Type", "image/jpeg")
+               var imgBuf bytes.Buffer
+               if err := jpeg.Encode(&imgBuf, qrImg, &jpeg.Options{Quality: 80}); err != nil {
+                   http.Error(w, "encoding error", 500)
+                   return
+               }
+               w.WriteHeader(200)
+               w.Write(imgBuf.Bytes())
+               return
+           default:
+               w.Header().Set("Content-Type", "image/png")
+               var buf bytes.Buffer
+               if err := png.Encode(&buf, qrImg); err != nil {
+                   http.Error(w, "encoding error", 500)
+                   return
+               }
+               w.WriteHeader(200)
+               w.Write(buf.Bytes())
+               return
+           }
 }
 
 func main() {
