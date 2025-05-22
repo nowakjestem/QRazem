@@ -12,11 +12,16 @@
         v-for="logo in filtered"
         :key="logo.path"
         @click="onSelectLogo(logo)"
-        :class="{'ring-2 ring-[#0070CC]': isSelectedLogo(logo)}"
-        class="cursor-pointer p-1 bg-white rounded-md flex flex-col items-center"
+        :class="['cursor-pointer bg-white rounded-md p-2', isSelectedLogo(logo) ? 'ring-2 ring-[#0070CC]' : '']"
       >
-        <img :src="logo.path" :alt="logo.name" class="w-full h-16 object-contain" />
-        <span class="text-sm mt-1">{{ logo.name }}</span>
+        <div class="w-16 h-16 bg-white flex items-center justify-center">
+          <img
+            :src="logo.path"
+            :alt="logo.name"
+            class="max-w-full max-h-full object-contain"
+          />
+        </div>
+        <span class="text-sm mt-1 block text-center">{{ logo.name }}</span>
       </div>
     </div>
     <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
