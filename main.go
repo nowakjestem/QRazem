@@ -163,15 +163,20 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-            if len(svgData) > 0 {
-                // Determine file type by extension
-                ext := strings.ToLower(path.Ext(logoName))
+           if len(svgData) > 0 {
+               // Parse background color for clearing under logo
+               bgColColor, err2 := parseHexColor(qrReq.BgColor)
+               if err2 != nil {
+                   bgColColor = color.White
+               }
+               // Determine file type by extension
+               ext := strings.ToLower(path.Ext(logoName))
                if ext == ".svg" {
-                   qrImg = overlaySVG(qrImg, svgData, 0.24, bgColor)
-                } else {
-                   qrImg = overlayRaster(qrImg, svgData, 0.24, bgColor)
-                }
-            }
+                   qrImg = overlaySVG(qrImg, svgData, 0.24, bgColColor)
+               } else {
+                   qrImg = overlayRaster(qrImg, svgData, 0.24, bgColColor)
+               }
+           }
 	} else {
 		// Zwykły JSON, bez SVG
 		err := json.NewDecoder(r.Body).Decode(&qrReq)
