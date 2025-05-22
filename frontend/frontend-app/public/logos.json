@@ -2,5 +2,17 @@
   {
     "name": "Logo Razem",
     "path": "/logos/Razem-logo.svg"
+  },
+  {
+    "name": "Młodzi Razem",
+    "path": "/logos/mlodzi-razem-logo.jpg"
+  },
+  {
+    "name": "Razem Poznań",
+    "path": "/logos/razem-poznan.png"
+  },
+  {
+    "name": "Razem Wielkopolska",
+    "path": "/logos/razem-wielkopolska.png"
   }
 ]

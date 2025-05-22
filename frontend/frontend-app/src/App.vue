@@ -99,11 +99,11 @@ async function generateQr() {
           <img :src="qrImageUrl" alt="Generated QR code" class="block w-64 h-64" />
         </div>
         <div class="mt-4">
-          <a
+        <a
             :href="qrImageUrl"
             download="qrcode.png"
-            class="inline-block py-2 px-6 bg-gradient-to-r from-[#0070CC] to-[#720546] hover:from-[#005fa3] hover:to-[#870f57] text-white font-semibold rounded-lg shadow-md transition-all mt-2"
-            >
+            class="inline-block py-2 px-6 bg-gradient-to-r from-[#720546] to-[#aa086c] hover:from-[#870f57] hover:to-[#720546] text-white font-semibold rounded-lg shadow-md transition-all mt-2"
+          >
             {{ t('download') }}
           </a>
         </div>
