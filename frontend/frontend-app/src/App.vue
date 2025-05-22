@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { t } from './i18n.js'
 
 const text = ref('')
@@ -7,40 +7,67 @@ const qrColor = ref('#720546')
 const bgColor = ref('#0070CC')
 const useLogo = ref(false)
 const logoFile = ref(null)
+const selectedLogo = ref(null)
 const qrImageUrl = ref(null)
 const showQrPicker = ref(false)
 const showBgPicker = ref(false)
 // Predefined swatches: Razem branding plus basic black, white and grays
 const predefinedColors = [
-  '#000000', // Black
-  '#FFFFFF', // White
-  '#444444', // Dark gray
-  '#888888', // Gray
-  '#CCCCCC', // Light gray
-  '#720546', // Razem primary
-  '#870f57', // Razem secondary
-  '#aa086c', // Razem tertiary
-  '#0070CC', // Razem blue
+  '#000000', '#444444', '#888888', '#CCCCCC', '#FFFFFF',
+  '#720546', '#870f57', '#aa086c', '#0070CC',
 ]
+// Predefined logos loaded from config
+const predefinedLogos = ref([])
+const logoQuery = ref('')
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/logos.json')
+    predefinedLogos.value = await res.json()
+  } catch (e) {
+    console.error('Failed to load logos.json', e)
+  }
+})
+const filteredLogos = computed(() => {
+  const q = logoQuery.value.toLowerCase()
+  return predefinedLogos.value.filter(l => l.name.toLowerCase().includes(q))
+})
+function selectLogo(logo) {
+  selectedLogo.value = logo
+  logoFile.value = null
+}
 
 function onLogoChange(event) {
+  selectedLogo.value = null
   const files = event.target.files
   logoFile.value = files && files.length > 0 ? files[0] : null
 }
 
 function onLogoDrop(event) {
+  selectedLogo.value = null
   const files = event.dataTransfer.files
   logoFile.value = files && files.length > 0 ? files[0] : null
 }
 
+
+async function prepareLogoFile() {
+  if (selectedLogo.value) {
+    const resp = await fetch(selectedLogo.value.path)
+    const blob = await resp.blob()
+    const name = selectedLogo.value.path.split('/').pop()
+    return new File([blob], name, { type: blob.type })
+  }
+  return logoFile.value
+}
 async function generateQr() {
   if (!text.value) return
   let response
   const payload = { text: text.value, qr_color: qrColor.value, bg_color: bgColor.value }
-  if (logoFile.value) {
+  const logoToSend = await prepareLogoFile()
+  if (logoToSend) {
     const formData = new FormData()
     formData.append('payload', JSON.stringify(payload))
-    formData.append('svg_logo', logoFile.value)
+    formData.append('svg_logo', logoToSend)
     response = await fetch('/api/generate-qr', { method: 'POST', body: formData })
   } else {
     response = await fetch('/api/generate-qr', {
@@ -99,7 +126,7 @@ async function generateQr() {
                   ></button>
                 </div>
                 <input type="color" v-model="qrColor"
-                  class="mt-2 w-full h-8 p-0 border-0 rounded cursor-pointer"
+                  class="mt-2 w-full h-8 p-0 border-2 border-gray-300 rounded cursor-pointer"
                 />
               </div>
             </div>
@@ -127,7 +154,7 @@ async function generateQr() {
                   ></button>
                 </div>
                 <input type="color" v-model="bgColor"
-                  class="mt-2 w-full h-8 p-0 border-0 rounded cursor-pointer"
+                  class="mt-2 w-full h-8 p-0 border-2 border-gray-300 rounded cursor-pointer"
                 />
               </div>
             </div>
@@ -139,26 +166,45 @@ async function generateQr() {
             <span class="ml-2 text-gray-700">{{ t('addLogo') }}</span>
           </label>
         </div>
-        <div v-if="useLogo">
-          <label class="block text-sm font-medium text-gray-700">{{ t('uploadSvg') }}</label>
-          <div class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
-               @drop.prevent="onLogoDrop"
-               @dragover.prevent>
-            <div class="space-y-1 text-center">
+        <div v-if="useLogo" class="space-y-4">
+          <label class="block text-sm font-medium text-gray-700">{{ t('addLogo') }}</label>
+          <!-- Predefined Logos Search and Select -->
+          <input
+            type="text"
+            v-model="logoQuery"
+            placeholder="Search logos..."
+            class="w-full border border-gray-300 rounded-md px-2 py-1 focus:border-[#720546] focus:outline-none"
+          />
+          <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-48 overflow-auto">
+            <div
+              v-for="logo in filteredLogos"
+              :key="logo.path"
+              @click="selectLogo(logo)"
+              :class="{'ring-2 ring-[#0070CC]': selectedLogo && selectedLogo.path === logo.path}"
+              class="cursor-pointer p-1 bg-white rounded-md flex flex-col items-center"
+            >
+              <img :src="logo.path" :alt="logo.name" class="w-full h-16 object-contain" />
+              <span class="text-sm mt-1">{{ logo.name }}</span>
+            </div>
+          </div>
+          <!-- Or Upload Custom SVG -->
+          <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
+          <div
+            class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
+            @drop.prevent="onLogoDrop"
+            @dragover.prevent
+          >
+            <div class="space-y-2 text-center">
               <svg class="mx-auto h-12 w-12 text-[#720546]" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M7 16v-4m0 0l5-5m-5 5l5 5m13-1v1a1 1 0 0 1-1 1h-5
-                         m6-2V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5m6-3h.01" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16v-4m0 0l5-5m-5 5l5 5m13-1v1a1 1 0 0 1-1 1h-5 m6-2V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5m6-3h.01" />
               </svg>
-              <div class="flex text-sm text-gray-600">
-                <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
-                  <span>{{ t('uploadSvg') }}</span>
-                  <input type="file" accept=".svg" class="sr-only" @change="onLogoChange" />
-                </label>
-                <p class="pl-1 text-gray-700">{{ t('orDragDrop') }}</p>
-              </div>
+              <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
+                <span>{{ t('uploadSvg') }}</span>
+                <input type="file" accept=".svg" class="sr-only" @change="onLogoChange" />
+              </label>
               <p class="text-xs text-gray-500">{{ t('svgOnly') }}</p>
               <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
+              <div v-else-if="selectedLogo" class="mt-2 text-sm text-gray-700">{{ selectedLogo.name }}</div>
             </div>
           </div>
         </div>
