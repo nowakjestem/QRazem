@@ -65,7 +65,7 @@ async function generateQr() {
             type="text"
             required
             :placeholder="t('enterTextUrl')"
-            class="mt-1 block w-full bg-transparent border-b-2 border-gray-300 py-2 px-1 text-gray-800 placeholder-gray-400 focus:border-[#720546] focus:outline-none"
+            class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:border-[#720546] focus:outline-none"
           />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -73,9 +73,11 @@ async function generateQr() {
           <ColorPicker v-model="bgColor" :swatches="predefinedColors" :label="t('bgColorLabel')" />
         </div>
         <div>
-          <label class="inline-flex items-center">
-            <input type="checkbox" v-model="useLogo" class="form-checkbox h-5 w-5 text-[#720546]" />
-            <span class="ml-2 text-gray-700">{{ t('addLogo') }}</span>
+          <label class="inline-flex relative items-center cursor-pointer">
+            <input type="checkbox" v-model="useLogo" class="sr-only peer" />
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#720546] rounded-full peer peer-checked:bg-[#720546] transition-colors"></div>
+            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+            <span class="ml-3 text-gray-700">{{ t('addLogo') }}</span>
           </label>
         </div>
         <div v-if="useLogo">
