@@ -5,8 +5,9 @@ import ColorPicker from './components/ColorPicker.vue'
 import LogoPicker from './components/LogoPicker.vue'
 
 const text = ref('')
+// Default colors: primary Razem and white background
 const qrColor = ref('#720546')
-const bgColor = ref('#0070CC')
+const bgColor = ref('#FFFFFF')
 const useLogo = ref(false)
 const logoFile = ref(null)
 const selectedLogo = ref(null)
