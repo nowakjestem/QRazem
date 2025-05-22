@@ -1,23 +1,27 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"image"
-	"image/color"
-	"image/draw"
-	"image/png"
-	"io"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
+   "bytes"
+   "encoding/json"
+   "fmt"
+   "image"
+   "image/color"
+   "image/draw"
+   "image/png"
+   _ "image/gif"
+   _ "image/jpeg"
+   "io"
+   "log"
+   "net/http"
+   "os"
+   "path"
+   "strconv"
+   "strings"
 
-	"github.com/skip2/go-qrcode"
-	"github.com/srwiley/oksvg"
-	"github.com/srwiley/rasterx"
+   "github.com/nfnt/resize"
+   "github.com/skip2/go-qrcode"
+   "github.com/srwiley/oksvg"
+   "github.com/srwiley/rasterx"
 )
 
 // QRRequest - struktura do odczytu JSON z frontend
@@ -90,6 +94,29 @@ func overlaySVG(base image.Image, svgData []byte, scale float64) image.Image {
 	return dst
 }
 
+// Rysuje raster (PNG/JPEG) logo na środku QR code
+func overlayRaster(base image.Image, imgData []byte, scale float64) image.Image {
+   w, h := base.Bounds().Dx(), base.Bounds().Dy()
+   // Resize logo to percentage of QR width
+   maxDim := int(float64(w) * scale)
+   img, _, err := image.Decode(bytes.NewReader(imgData))
+   if err != nil {
+       return base
+   }
+   // Preserve aspect ratio
+   scaled := resize.Resize(uint(maxDim), 0, img, resize.Lanczos3)
+
+   // Center position
+   logoW := scaled.Bounds().Dx()
+   logoH := scaled.Bounds().Dy()
+   offsetX := (w - logoW) / 2
+   offsetY := (h - logoH) / 2
+   dst := image.NewRGBA(base.Bounds())
+   draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
+   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), scaled, image.Point{}, draw.Over)
+   return dst
+}
+
 func qrHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "POST only", http.StatusMethodNotAllowed)
@@ -106,14 +133,16 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Can't read multipart: "+err.Error(), 400)
 			return
 		}
-		var svgData []byte
-		for {
-			part, err := reader.NextPart()
+            var svgData []byte
+            var logoName string
+            for {
+                part, err := reader.NextPart()
 			if err == io.EOF {
 				break
 			}
-			if part.FormName() == "svg_logo" && part.FileName() != "" {
-				svgData, _ = io.ReadAll(part)
+               if part.FormName() == "svg_logo" && part.FileName() != "" {
+                   svgData, _ = io.ReadAll(part)
+                   logoName = part.FileName()
 			} else if part.FormName() == "payload" {
 				payloadBytes, _ := io.ReadAll(part)
 				json.Unmarshal(payloadBytes, &qrReq)
@@ -124,9 +153,15 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		if len(svgData) > 0 {
-			qrImg = overlaySVG(qrImg, svgData, 0.24) // 24% szerokości QR
-		}
+            if len(svgData) > 0 {
+                // Determine file type by extension
+                ext := strings.ToLower(path.Ext(logoName))
+                if ext == ".svg" {
+                    qrImg = overlaySVG(qrImg, svgData, 0.24)
+                } else {
+                    qrImg = overlayRaster(qrImg, svgData, 0.24)
+                }
+            }
 	} else {
 		// Zwykły JSON, bez SVG
 		err := json.NewDecoder(r.Body).Decode(&qrReq)

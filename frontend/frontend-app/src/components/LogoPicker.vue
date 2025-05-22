@@ -40,7 +40,7 @@
         </svg>
         <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
           <span>{{ t('uploadSvg') }}</span>
-          <input type="file" accept=".svg" class="sr-only" @change="onFileSelect" />
+        <input type="file" accept="image/*" class="sr-only" @change="onFileSelect" />
         </label>
         <p class="text-xs text-gray-500">{{ t('svgOnly') }}</p>
         <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
