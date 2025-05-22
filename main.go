@@ -71,16 +71,32 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
 
 // Rysuje SVG logo na środku wygenerowanego QR code, z wyczyszczeniem obszaru pod logiem
 func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Color) image.Image {
-	// Ustal docelowy rozmiar loga (jako procent szerokości QR)
-	w, h := base.Bounds().Dx(), base.Bounds().Dy()
-	logoW := int(float64(w) * scale)
-	logoH := int(float64(h) * scale)
-
-	icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
-	if err != nil {
-		return base
-	}
-	icon.SetTarget(0, 0, float64(logoW), float64(logoH))
+   // Ustal docelowy rozmiar loga (jako procent szerokości QR), zachowując proporcje SVG
+   w, h := base.Bounds().Dx(), base.Bounds().Dy()
+   maxDim := int(float64(w) * scale)
+   icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
+   if err != nil {
+       return base
+   }
+   // Oryginalne proporcje SVG
+   origW := int(icon.ViewBox.W)
+   origH := int(icon.ViewBox.H)
+   var logoW, logoH int
+   if origW > 0 && origH > 0 {
+       ratio := float64(origH) / float64(origW)
+       // Skaluj szerokość, dopasuj wysokość
+       logoW = maxDim
+       logoH = int(float64(maxDim) * ratio)
+       // Jeśli wysokość przewyższa maxDim, przeskaluj odwrotnie
+       if logoH > maxDim {
+           logoH = maxDim
+           logoW = int(float64(maxDim) / ratio)
+       }
+   } else {
+       // Fallback na kwadrat jeśli brak danych
+       logoW, logoH = maxDim, maxDim
+   }
+   icon.SetTarget(0, 0, float64(logoW), float64(logoH))
 	rgba := image.NewRGBA(image.Rect(0, 0, logoW, logoH))
 	scanner := rasterx.NewScannerGV(logoW, logoH, rgba, rgba.Bounds())
 	raster := rasterx.NewDasher(logoW, logoH, scanner)
