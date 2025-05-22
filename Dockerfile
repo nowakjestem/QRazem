@@ -10,9 +10,10 @@
  FROM golang:1.19-alpine AS backend-build
  WORKDIR /app
  COPY go.mod go.sum ./
- # Disable Go module proxy to avoid download errors in some network environments
+ # Disable Go module proxy to avoid download errors and install git for VCS operations
  ENV GOPROXY=direct
- RUN go mod download
+ RUN apk add --no-cache git && \
+     go mod download
  COPY . ./
  RUN go build -o qrapp main.go
 
