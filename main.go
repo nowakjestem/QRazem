@@ -307,7 +307,7 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
            }
            switch format {
            case "svg":
-               svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
+               svgBytes, err = generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
                if err != nil {
                    http.Error(w, err.Error(), 500)
                    return
