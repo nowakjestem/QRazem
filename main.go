@@ -236,8 +236,9 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 		// Logo upload data: svg bytes and filename
 		var svgData []byte
 		var logoName string
-	// Use larger QR code size for better resilience under logo overlay
-	const qrSize = 1024
+		// Default QR code size for raster outputs
+		const defaultSize = 1024
+		var size int
 	// Obsługa: tylko dane JSON (bez logo) lub multipart (z logo)
 	if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 		reader, err := r.MultipartReader()
@@ -258,7 +259,15 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 				json.Unmarshal(payloadBytes, &qrReq)
 			}
 		}
-		qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, qrSize)
+			// Determine raster size
+			size = qrReq.Size
+			if size <= 0 { size = defaultSize }
+               // Determine raster size for JSON path
+               size = qrReq.Size
+               if size <= 0 {
+                   size = defaultSize
+               }
+               qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -284,7 +293,7 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad JSON: "+err.Error(), 400)
 			return
 		}
-		qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, qrSize)
+            qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -294,7 +303,7 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
            format := strings.ToLower(qrReq.Format)
            size := qrReq.Size
            if size <= 0 {
-               size = qrSize
+               size = defaultSize
            }
            switch format {
            case "svg":
