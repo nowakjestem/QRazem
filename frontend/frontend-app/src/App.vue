@@ -80,7 +80,7 @@ async function generateQr() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('qrColorLabel') }}</label>
             <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full border" :style="{ backgroundColor: qrColor }"></div>
+              <div class="w-10 h-10 rounded-full border-2 border-gray-400" :style="{ backgroundColor: qrColor }"></div>
               <button
                 type="button"
                 @click="showQrPicker = !showQrPicker"
@@ -108,7 +108,7 @@ async function generateQr() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('bgColorLabel') }}</label>
             <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full border" :style="{ backgroundColor: bgColor }"></div>
+              <div class="w-10 h-10 rounded-full border-2 border-gray-400" :style="{ backgroundColor: bgColor }"></div>
               <button
                 type="button"
                 @click="showBgPicker = !showBgPicker"
