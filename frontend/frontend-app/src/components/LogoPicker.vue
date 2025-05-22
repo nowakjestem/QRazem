@@ -5,7 +5,7 @@
       type="text"
       v-model="query"
       placeholder="Search logos..."
-      class="w-full border border-gray-300 rounded-md px-2 py-1 focus:border-[#720546] focus:outline-none"
+      class="w-full border border-gray-300 rounded-md p-2 focus:border-[#720546] focus:outline-none"
     />
     <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-48 overflow-auto">
       <div
@@ -41,15 +41,16 @@
       @dragover.prevent
     >
       <div class="space-y-2 text-center">
-        <svg class="mx-auto h-12 w-12 text-[#720546]" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+        <!-- Upload icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-[#720546]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M7 16v-4m0 0l5-5m-5 5l5 5m13-1v1a1 1 0 0 1-1 1h-5 m6-2V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5m6-3h.01" />
+            d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4-4m0 0l-4 4m4-4v12" />
         </svg>
-        <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
+        <label class="cursor-pointer font-medium text-[#720546] hover:text-[#aa086c]">
           <span>{{ t('uploadSvg') }}</span>
-        <input type="file" accept="image/*" class="sr-only" @change="onFileSelect" />
+          <input type="file" accept="image/*" class="sr-only" @change="onFileSelect" />
         </label>
-        <p class="text-xs text-gray-500">{{ t('svgOnly') }}</p>
+        <p class="text-xs text-gray-500">{{ t('imageOnly') }}</p>
         <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
         <div v-else-if="selectedLogo" class="mt-2 text-sm text-gray-700">{{ selectedLogo.name }}</div>
       </div>

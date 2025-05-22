@@ -14,6 +14,7 @@ const messages = {
     generateQr: 'Generate QR',
     preview: 'Preview',
     download: 'Download',
+    imageOnly: 'Allowed formats: SVG, PNG, JPEG',
     failed: 'Failed to generate QR code.'
   },
   pl: {
@@ -30,6 +31,7 @@ const messages = {
     generateQr: 'Generuj QR',
     preview: 'Podgląd',
     download: 'Pobierz',
+    imageOnly: 'Dozwolone formaty: SVG, PNG, JPEG',
     failed: 'Nie udało się wygenerować kodu QR.'
   }
 };
