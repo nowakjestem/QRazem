@@ -231,8 +231,11 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var qrReq QRRequest
-	var qrImg image.Image
+		var qrReq QRRequest
+		var qrImg image.Image
+		// Logo upload data: svg bytes and filename
+		var svgData []byte
+		var logoName string
 	// Use larger QR code size for better resilience under logo overlay
 	const qrSize = 1024
 	// Obsługa: tylko dane JSON (bez logo) lub multipart (z logo)
@@ -242,8 +245,6 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Can't read multipart: "+err.Error(), 400)
 			return
 		}
-            var svgData []byte
-            var logoName string
             for {
                 part, err := reader.NextPart()
 			if err == io.EOF {
