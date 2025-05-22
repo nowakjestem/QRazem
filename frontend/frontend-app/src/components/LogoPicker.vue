@@ -4,7 +4,7 @@
     <input
       type="text"
       v-model="query"
-      placeholder="Search logos..."
+      :placeholder="t('searchLogos')"
       class="w-full border border-gray-300 rounded-md p-2 focus:border-[#720546] focus:outline-none"
     />
     <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-48 overflow-auto">
