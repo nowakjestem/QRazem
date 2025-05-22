@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { t } from './i18n.js'
 import ColorPicker from './components/ColorPicker.vue'
 import LogoPicker from './components/LogoPicker.vue'
@@ -11,6 +11,13 @@ const bgColor = ref('#FFFFFF')
 const useLogo = ref(false)
 const logoFile = ref(null)
 const selectedLogo = ref(null)
+// Clear logo selection or upload if toggling off
+watch(useLogo, (enabled) => {
+  if (!enabled) {
+    selectedLogo.value = null
+    logoFile.value = null
+  }
+})
 const qrImageUrl = ref(null)
 // Predefined swatches: Razem branding plus basic black, white and grays
 const predefinedColors = ['#000000','#444444','#888888','#CCCCCC','#FFFFFF','#720546','#870f57','#aa086c','#0070CC']
@@ -106,24 +113,56 @@ async function generateQr() {
           <LogoPicker v-model:selectedLogo="selectedLogo" v-model:logoFile="logoFile" />
         </div>
         <div class="grid grid-cols-2 gap-4">
+          <!-- Format selector -->
           <div>
             <label class="block text-sm font-medium text-gray-700">Format</label>
-            <select v-model="downloadFormat"
-                    :disabled="logoIsRaster && downloadFormat==='svg'"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none">
-              <option v-for="fmt in formats" :key="fmt" :value="fmt">
-                {{ fmt.toUpperCase() }}
-              </option>
-            </select>
+            <div class="relative mt-1">
+              <select
+                v-model="downloadFormat"
+                :disabled="logoIsRaster && downloadFormat==='svg'"
+                class="w-full pl-3 pr-8 py-2 border border-gray-300 bg-white rounded-md appearance-none focus:outline-none focus:border-[#720546] focus:ring-1 focus:ring-[#720546] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option v-for="fmt in formats" :key="fmt" :value="fmt">
+                  {{ fmt.toUpperCase() }}
+                </option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                <svg
+                  class="h-4 w-4 text-gray-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
+          <!-- Size selector -->
           <div>
             <label class="block text-sm font-medium text-gray-700">Size</label>
-            <select v-model.number="downloadSize"
-                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none">
-              <option v-for="s in sizeOptions" :key="s" :value="s">
-                {{ s }}x{{ s }}
-              </option>
-            </select>
+            <div class="relative mt-1">
+              <select
+                v-model.number="downloadSize"
+                class="w-full pl-3 pr-8 py-2 border border-gray-300 bg-white rounded-md appearance-none focus:outline-none focus:border-[#720546] focus:ring-1 focus:ring-[#720546]"
+              >
+                <option v-for="s in sizeOptions" :key="s" :value="s">
+                  {{ s }}x{{ s }}
+                </option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                <svg
+                  class="h-4 w-4 text-gray-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
         <div>
