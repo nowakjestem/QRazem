@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { t } from './i18n.js'
 import ColorPicker from './components/ColorPicker.vue'
 import LogoPicker from './components/LogoPicker.vue'
@@ -14,6 +14,21 @@ const selectedLogo = ref(null)
 const qrImageUrl = ref(null)
 // Predefined swatches: Razem branding plus basic black, white and grays
 const predefinedColors = ['#000000','#444444','#888888','#CCCCCC','#FFFFFF','#720546','#870f57','#aa086c','#0070CC']
+// Download format and size options
+const formats = ['svg','png','jpg']
+const sizeOptions = [256, 512, 1024, 2048]
+const downloadFormat = ref('png')
+const downloadSize = ref(1024)
+// Detect if selected logo is raster (non-SVG)
+const logoIsRaster = computed(() => {
+  if (selectedLogo.value) {
+    return !selectedLogo.value.path.toLowerCase().endsWith('.svg')
+  }
+  if (logoFile.value) {
+    return !logoFile.value.name.toLowerCase().endsWith('.svg')
+  }
+  return false
+})
 
 
 
@@ -29,7 +44,13 @@ async function prepareLogoFile() {
 async function generateQr() {
   if (!text.value) return
   let response
-  const payload = { text: text.value, qr_color: qrColor.value, bg_color: bgColor.value }
+  const payload = {
+    text: text.value,
+    qr_color: qrColor.value,
+    bg_color: bgColor.value,
+    format: downloadFormat.value,
+    size: downloadSize.value,
+  }
   const logoToSend = await prepareLogoFile()
   if (logoToSend) {
     const formData = new FormData()
@@ -83,6 +104,27 @@ async function generateQr() {
         </div>
         <div v-if="useLogo">
           <LogoPicker v-model:selectedLogo="selectedLogo" v-model:logoFile="logoFile" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Format</label>
+            <select v-model="downloadFormat"
+                    :disabled="logoIsRaster && downloadFormat==='svg'"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none">
+              <option v-for="fmt in formats" :key="fmt" :value="fmt">
+                {{ fmt.toUpperCase() }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Size</label>
+            <select v-model.number="downloadSize"
+                    class="mt-1 block w-full border border-gray-300 rounded-md p-2 focus:outline-none">
+              <option v-for="s in sizeOptions" :key="s" :value="s">
+                {{ s }}x{{ s }}
+              </option>
+            </select>
+          </div>
         </div>
         <div>
           <button
