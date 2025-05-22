@@ -12,7 +12,10 @@
         v-for="logo in filtered"
         :key="logo.path"
         @click="onSelectLogo(logo)"
-        :class="['cursor-pointer bg-white rounded-md p-2', isSelectedLogo(logo) ? 'ring-2 ring-[#0070CC]' : '']"
+        :class="[
+          'cursor-pointer bg-white rounded-md p-2 flex flex-col items-center',
+          isSelectedLogo(logo) ? 'ring-2 ring-[#0070CC]' : ''
+        ]"
       >
         <div class="w-16 h-16 bg-white flex items-center justify-center">
           <img
