@@ -61,13 +61,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { t } from '../i18n.js'
-
+// Props for v-model binding
 const props = defineProps({
-  modelSelectedLogo: Object,
-  modelLogoFile: Object,
+  selectedLogo: Object,
+  logoFile: Object,
 })
-const emit = defineEmits(['update:modelSelectedLogo', 'update:modelLogoFile'])
+const emit = defineEmits(['update:selectedLogo', 'update:logoFile'])
 
+// State: predefined logos and search query
 const logos = ref([])
 const query = ref('')
 onMounted(async () => {
@@ -81,30 +82,25 @@ onMounted(async () => {
 const filtered = computed(() =>
   logos.value.filter(l => l.name.toLowerCase().includes(query.value.toLowerCase()))
 )
-const selectedLogo = computed({
-  get: () => props.modelSelectedLogo,
-  set: v => emit('update:modelSelectedLogo', v),
-})
-const logoFile = computed({
-  get: () => props.modelLogoFile,
-  set: v => emit('update:modelLogoFile', v),
-})
 
 function onSelectLogo(logo) {
-  selectedLogo.value = logo
-  logoFile.value = null
+  // Select predefined logo, clear any uploaded file
+  emit('update:selectedLogo', logo)
+  emit('update:logoFile', null)
 }
 function isSelectedLogo(logo) {
-  return props.modelSelectedLogo && props.modelSelectedLogo.path === logo.path
+  return props.selectedLogo && props.selectedLogo.path === logo.path
 }
 function onFileSelect(event) {
-  selectedLogo.value = null
+  // Upload custom file, clear any predefined selection
   const files = event.target.files
-  logoFile.value = files && files.length > 0 ? files[0] : null
+  emit('update:selectedLogo', null)
+  emit('update:logoFile', files && files.length > 0 ? files[0] : null)
 }
 function onFileDrop(event) {
-  selectedLogo.value = null
+  // Drop custom file, clear any predefined selection
   const files = event.dataTransfer.files
-  logoFile.value = files && files.length > 0 ? files[0] : null
+  emit('update:selectedLogo', null)
+  emit('update:logoFile', files && files.length > 0 ? files[0] : null)
 }
 </script>
