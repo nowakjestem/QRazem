@@ -108,8 +108,16 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
    dst := image.NewRGBA(base.Bounds())
    // Draw base QR code
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Clear area under logo to background color
-   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Clear square area under logo to background color (preserve square padding)
+   // Compute square side length
+   sqSide := logoW
+   if logoH > sqSide {
+       sqSide = logoH
+   }
+   // Compute top-left of square
+   sqOffsetX := (w - sqSide) / 2
+   sqOffsetY := (h - sqSide) / 2
+   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+sqSide, sqOffsetY+sqSide), &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Draw logo on top
    draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), rgba, image.Point{}, draw.Over)
    return dst
@@ -135,8 +143,14 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
    dst := image.NewRGBA(base.Bounds())
    // Draw base QR code
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Clear area under logo to background color
-   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Clear square area under logo to background color
+   sqSide := logoW
+   if logoH > sqSide {
+       sqSide = logoH
+   }
+   sqOffsetX := (base.Bounds().Dx() - sqSide) / 2
+   sqOffsetY := (base.Bounds().Dy() - sqSide) / 2
+   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+sqSide, sqOffsetY+sqSide), &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Draw logo on top
    draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), scaled, image.Point{}, draw.Over)
    return dst
