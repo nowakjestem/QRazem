@@ -27,6 +27,13 @@
         <span class="text-sm mt-1 block text-center">{{ logo.name }}</span>
       </div>
     </div>
+    <!-- Preview selected predefined logo -->
+    <div v-if="selectedLogo" class="flex items-center space-x-3 mt-2">
+      <div class="w-12 h-12 bg-white border rounded flex items-center justify-center">
+        <img :src="selectedLogo.path" :alt="selectedLogo.name" class="max-w-full max-h-full object-contain" />
+      </div>
+      <span class="text-md font-medium text-gray-800">{{ selectedLogo.name }}</span>
+    </div>
     <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
     <div
       class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
