@@ -1,6 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref } from 'vue'
 import { t } from './i18n.js'
+import ColorPicker from './components/ColorPicker.vue'
+import LogoPicker from './components/LogoPicker.vue'
 
 const text = ref('')
 const qrColor = ref('#720546')
@@ -9,45 +11,9 @@ const useLogo = ref(false)
 const logoFile = ref(null)
 const selectedLogo = ref(null)
 const qrImageUrl = ref(null)
-const showQrPicker = ref(false)
-const showBgPicker = ref(false)
 // Predefined swatches: Razem branding plus basic black, white and grays
-const predefinedColors = [
-  '#000000', '#444444', '#888888', '#CCCCCC', '#FFFFFF',
-  '#720546', '#870f57', '#aa086c', '#0070CC',
-]
-// Predefined logos loaded from config
-const predefinedLogos = ref([])
-const logoQuery = ref('')
+const predefinedColors = ['#000000','#444444','#888888','#CCCCCC','#FFFFFF','#720546','#870f57','#aa086c','#0070CC']
 
-onMounted(async () => {
-  try {
-    const res = await fetch('/logos.json')
-    predefinedLogos.value = await res.json()
-  } catch (e) {
-    console.error('Failed to load logos.json', e)
-  }
-})
-const filteredLogos = computed(() => {
-  const q = logoQuery.value.toLowerCase()
-  return predefinedLogos.value.filter(l => l.name.toLowerCase().includes(q))
-})
-function selectLogo(logo) {
-  selectedLogo.value = logo
-  logoFile.value = null
-}
-
-function onLogoChange(event) {
-  selectedLogo.value = null
-  const files = event.target.files
-  logoFile.value = files && files.length > 0 ? files[0] : null
-}
-
-function onLogoDrop(event) {
-  selectedLogo.value = null
-  const files = event.dataTransfer.files
-  logoFile.value = files && files.length > 0 ? files[0] : null
-}
 
 
 async function prepareLogoFile() {
@@ -103,62 +69,8 @@ async function generateQr() {
           />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <!-- QR Color Picker -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('qrColorLabel') }}</label>
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full border-2 border-gray-400" :style="{ backgroundColor: qrColor }"></div>
-              <button
-                type="button"
-                @click="showQrPicker = !showQrPicker"
-                class="px-3 py-1 bg-[#720546] text-white rounded-md"
-              >
-                {{ t('chooseColor') }}
-              </button>
-            </div>
-            <div v-if="showQrPicker" class="mt-2 relative">
-              <div class="absolute z-10 bg-white p-3 rounded-lg shadow-lg">
-                <div class="grid grid-cols-4 gap-2">
-                  <button v-for="c in predefinedColors" :key="c"
-                    @click="qrColor = c; showQrPicker = false"
-                    :style="{ backgroundColor: c }"
-                    class="w-8 h-8 rounded-full border-2 border-gray-300 focus:outline-none"
-                  ></button>
-                </div>
-                <input type="color" v-model="qrColor"
-                  class="mt-2 w-full h-8 p-0 border-2 border-gray-300 rounded cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>
-          <!-- Background Color Picker -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">{{ t('bgColorLabel') }}</label>
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-full border-2 border-gray-400" :style="{ backgroundColor: bgColor }"></div>
-              <button
-                type="button"
-                @click="showBgPicker = !showBgPicker"
-                class="px-3 py-1 bg-[#0070CC] text-white rounded-md"
-              >
-                {{ t('chooseColor') }}
-              </button>
-            </div>
-            <div v-if="showBgPicker" class="mt-2 relative">
-              <div class="absolute z-10 bg-white p-3 rounded-lg shadow-lg">
-                <div class="grid grid-cols-4 gap-2">
-                  <button v-for="c in predefinedColors" :key="c"
-                    @click="bgColor = c; showBgPicker = false"
-                    :style="{ backgroundColor: c }"
-                    class="w-8 h-8 rounded-full border-2 border-gray-300 focus:outline-none"
-                  ></button>
-                </div>
-                <input type="color" v-model="bgColor"
-                  class="mt-2 w-full h-8 p-0 border-2 border-gray-300 rounded cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>
+          <ColorPicker v-model="qrColor" :swatches="predefinedColors" :label="t('qrColorLabel')" />
+          <ColorPicker v-model="bgColor" :swatches="predefinedColors" :label="t('bgColorLabel')" />
         </div>
         <div>
           <label class="inline-flex items-center">
@@ -166,47 +78,8 @@ async function generateQr() {
             <span class="ml-2 text-gray-700">{{ t('addLogo') }}</span>
           </label>
         </div>
-        <div v-if="useLogo" class="space-y-4">
-          <label class="block text-sm font-medium text-gray-700">{{ t('addLogo') }}</label>
-          <!-- Predefined Logos Search and Select -->
-          <input
-            type="text"
-            v-model="logoQuery"
-            placeholder="Search logos..."
-            class="w-full border border-gray-300 rounded-md px-2 py-1 focus:border-[#720546] focus:outline-none"
-          />
-          <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-48 overflow-auto">
-            <div
-              v-for="logo in filteredLogos"
-              :key="logo.path"
-              @click="selectLogo(logo)"
-              :class="{'ring-2 ring-[#0070CC]': selectedLogo && selectedLogo.path === logo.path}"
-              class="cursor-pointer p-1 bg-white rounded-md flex flex-col items-center"
-            >
-              <img :src="logo.path" :alt="logo.name" class="w-full h-16 object-contain" />
-              <span class="text-sm mt-1">{{ logo.name }}</span>
-            </div>
-          </div>
-          <!-- Or Upload Custom SVG -->
-          <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
-          <div
-            class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
-            @drop.prevent="onLogoDrop"
-            @dragover.prevent
-          >
-            <div class="space-y-2 text-center">
-              <svg class="mx-auto h-12 w-12 text-[#720546]" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16v-4m0 0l5-5m-5 5l5 5m13-1v1a1 1 0 0 1-1 1h-5 m6-2V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5m6-3h.01" />
-              </svg>
-              <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
-                <span>{{ t('uploadSvg') }}</span>
-                <input type="file" accept=".svg" class="sr-only" @change="onLogoChange" />
-              </label>
-              <p class="text-xs text-gray-500">{{ t('svgOnly') }}</p>
-              <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
-              <div v-else-if="selectedLogo" class="mt-2 text-sm text-gray-700">{{ selectedLogo.name }}</div>
-            </div>
-          </div>
+        <div v-if="useLogo">
+          <LogoPicker v-model:selectedLogo="selectedLogo" v-model:logoFile="logoFile" />
         </div>
         <div>
           <button

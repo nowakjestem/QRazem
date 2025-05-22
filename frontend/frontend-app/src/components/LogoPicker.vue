@@ -1,0 +1,94 @@
+<template>
+  <div class="space-y-4">
+    <label class="block text-sm font-medium text-gray-700">{{ t('addLogo') }}</label>
+    <input
+      type="text"
+      v-model="query"
+      placeholder="Search logos..."
+      class="w-full border border-gray-300 rounded-md px-2 py-1 focus:border-[#720546] focus:outline-none"
+    />
+    <div class="grid grid-cols-3 sm:grid-cols-4 gap-4 max-h-48 overflow-auto">
+      <div
+        v-for="logo in filtered"
+        :key="logo.path"
+        @click="onSelectLogo(logo)"
+        :class="{'ring-2 ring-[#0070CC]': isSelectedLogo(logo)}"
+        class="cursor-pointer p-1 bg-white rounded-md flex flex-col items-center"
+      >
+        <img :src="logo.path" :alt="logo.name" class="w-full h-16 object-contain" />
+        <span class="text-sm mt-1">{{ logo.name }}</span>
+      </div>
+    </div>
+    <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
+    <div
+      class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
+      @drop.prevent="onFileDrop"
+      @dragover.prevent
+    >
+      <div class="space-y-2 text-center">
+        <svg class="mx-auto h-12 w-12 text-[#720546]" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 16v-4m0 0l5-5m-5 5l5 5m13-1v1a1 1 0 0 1-1 1h-5 m6-2V5a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h5m6-3h.01" />
+        </svg>
+        <label class="relative cursor-pointer bg-white rounded-md font-medium text-[#720546] hover:text-[#aa086c]">
+          <span>{{ t('uploadSvg') }}</span>
+          <input type="file" accept=".svg" class="sr-only" @change="onFileSelect" />
+        </label>
+        <p class="text-xs text-gray-500">{{ t('svgOnly') }}</p>
+        <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
+        <div v-else-if="selectedLogo" class="mt-2 text-sm text-gray-700">{{ selectedLogo.name }}</div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { t } from '../i18n.js'
+
+const props = defineProps({
+  modelSelectedLogo: Object,
+  modelLogoFile: Object,
+})
+const emit = defineEmits(['update:modelSelectedLogo', 'update:modelLogoFile'])
+
+const logos = ref([])
+const query = ref('')
+onMounted(async () => {
+  try {
+    const res = await fetch('/logos.json')
+    logos.value = await res.json()
+  } catch (e) {
+    console.error('Failed to load logos.json', e)
+  }
+})
+const filtered = computed(() =>
+  logos.value.filter(l => l.name.toLowerCase().includes(query.value.toLowerCase()))
+)
+const selectedLogo = computed({
+  get: () => props.modelSelectedLogo,
+  set: v => emit('update:modelSelectedLogo', v),
+})
+const logoFile = computed({
+  get: () => props.modelLogoFile,
+  set: v => emit('update:modelLogoFile', v),
+})
+
+function onSelectLogo(logo) {
+  selectedLogo.value = logo
+  logoFile.value = null
+}
+function isSelectedLogo(logo) {
+  return props.modelSelectedLogo && props.modelSelectedLogo.path === logo.path
+}
+function onFileSelect(event) {
+  selectedLogo.value = null
+  const files = event.target.files
+  logoFile.value = files && files.length > 0 ? files[0] : null
+}
+function onFileDrop(event) {
+  selectedLogo.value = null
+  const files = event.dataTransfer.files
+  logoFile.value = files && files.length > 0 ? files[0] : null
+}
+</script>
