@@ -10,7 +10,18 @@ const logoFile = ref(null)
 const qrImageUrl = ref(null)
 const showQrPicker = ref(false)
 const showBgPicker = ref(false)
-const predefinedColors = ['#720546', '#870f57', '#aa086c', '#0070CC']
+// Predefined swatches: Razem branding plus basic black, white and grays
+const predefinedColors = [
+  '#000000', // Black
+  '#FFFFFF', // White
+  '#444444', // Dark gray
+  '#888888', // Gray
+  '#CCCCCC', // Light gray
+  '#720546', // Razem primary
+  '#870f57', // Razem secondary
+  '#aa086c', // Razem tertiary
+  '#0070CC', // Razem blue
+]
 
 function onLogoChange(event) {
   const files = event.target.files
