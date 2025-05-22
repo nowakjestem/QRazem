@@ -58,7 +58,8 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
 	if err != nil {
 		bgColor = color.White
 	}
-	qr, err := qrcode.New(code, qrcode.Medium)
+	// Use highest error correction to accommodate logo overlay
+	qr, err := qrcode.New(code, qrcode.Highest)
 	if err != nil {
 		return nil, err
 	}
@@ -68,8 +69,8 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
 	return img, nil
 }
 
-// Rysuje SVG logo na środku wygenerowanego QR code
-func overlaySVG(base image.Image, svgData []byte, scale float64) image.Image {
+// Rysuje SVG logo na środku wygenerowanego QR code, z wyczyszczeniem obszaru pod logiem
+func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Color) image.Image {
 	// Ustal docelowy rozmiar loga (jako procent szerokości QR)
 	w, h := base.Bounds().Dx(), base.Bounds().Dy()
 	logoW := int(float64(w) * scale)
@@ -83,19 +84,23 @@ func overlaySVG(base image.Image, svgData []byte, scale float64) image.Image {
 	rgba := image.NewRGBA(image.Rect(0, 0, logoW, logoH))
 	scanner := rasterx.NewScannerGV(logoW, logoH, rgba, rgba.Bounds())
 	raster := rasterx.NewDasher(logoW, logoH, scanner)
-	icon.Draw(raster, 1.0)
+   icon.Draw(raster, 1.0)
 
 	// Pozycja środka
 	offsetX := (w - logoW) / 2
 	offsetY := (h - logoH) / 2
-	dst := image.NewRGBA(base.Bounds())
-	draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-	draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), rgba, image.Point{}, draw.Over)
-	return dst
+   dst := image.NewRGBA(base.Bounds())
+   // Draw base QR code
+   draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
+   // Clear area under logo to background color
+   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Draw logo on top
+   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), rgba, image.Point{}, draw.Over)
+   return dst
 }
 
-// Rysuje raster (PNG/JPEG) logo na środku QR code
-func overlayRaster(base image.Image, imgData []byte, scale float64) image.Image {
+// Rysuje raster (PNG/JPEG) logo na środku QR code, z wyczyszczeniem obszaru pod logiem
+func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
    // Resize logo to percentage of QR width
    maxDim := int(float64(w) * scale)
@@ -112,7 +117,11 @@ func overlayRaster(base image.Image, imgData []byte, scale float64) image.Image 
    offsetX := (w - logoW) / 2
    offsetY := (h - logoH) / 2
    dst := image.NewRGBA(base.Bounds())
+   // Draw base QR code
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
+   // Clear area under logo to background color
+   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Draw logo on top
    draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH), scaled, image.Point{}, draw.Over)
    return dst
 }
@@ -125,7 +134,8 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 
 	var qrReq QRRequest
 	var qrImg image.Image
-	const qrSize = 512
+	// Use larger QR code size for better resilience under logo overlay
+	const qrSize = 1024
 	// Obsługa: tylko dane JSON (bez logo) lub multipart (z logo)
 	if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
 		reader, err := r.MultipartReader()
@@ -156,10 +166,10 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
             if len(svgData) > 0 {
                 // Determine file type by extension
                 ext := strings.ToLower(path.Ext(logoName))
-                if ext == ".svg" {
-                    qrImg = overlaySVG(qrImg, svgData, 0.24)
+               if ext == ".svg" {
+                   qrImg = overlaySVG(qrImg, svgData, 0.24, bgColor)
                 } else {
-                    qrImg = overlayRaster(qrImg, svgData, 0.24)
+                   qrImg = overlayRaster(qrImg, svgData, 0.24, bgColor)
                 }
             }
 	} else {
