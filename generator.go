@@ -62,14 +62,24 @@ func generateSVG(code, qrCol, bgCol string, size int, svgLogo []byte, logoName s
    }
    if len(svgLogo) > 0 && strings.ToLower(path.Ext(logoName)) == ".svg" {
        enc := base64.StdEncoding.EncodeToString(svgLogo)
-       rawSide := float64(size) * 0.24
-       offset := (float64(size) - rawSide) / 2
+       // reserved square for logo: 24% of QR code size
+       rawSquare := float64(size) * 0.24
+       // padding around logo: 2% of QR code size
+       padding := float64(size) * 0.02
+       // actual logo dimensions inside padding
+       logoSize := rawSquare - 2*padding
+       // top-left of reserved square
+       sqOffset := (float64(size) - rawSquare) / 2
+       // top-left of logo inside reserved square
+       logoOffset := sqOffset + padding
+       // clear background under reserved area
        sb.WriteString(fmt.Sprintf(
            `<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>`,
-           offset, offset, rawSide, rawSide, bgCol))
+           sqOffset, sqOffset, rawSquare, rawSquare, bgCol))
+       // embed logo image with padding
        sb.WriteString(fmt.Sprintf(
            `<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" href="data:image/svg+xml;base64,%s" preserveAspectRatio="xMidYMid meet"/>`,
-           offset, offset, rawSide, rawSide, enc))
+           logoOffset, logoOffset, logoSize, logoSize, enc))
    }
    sb.WriteString(`</svg>`)
    return []byte(sb.String()), nil
