@@ -17,12 +17,17 @@
           isSelectedLogo(logo) ? 'border-2 border-[#0070CC]' : ''
         ]"
       >
-        <div class="w-16 h-16 bg-white flex items-center justify-center">
+        <div class="w-16 h-16 bg-white flex items-center justify-center relative">
           <img
             :src="logo.path"
             :alt="logo.name"
             class="max-w-full max-h-full object-contain"
           />
+          <!-- Badge for SVG-available logos -->
+          <span
+            v-if="isSvgLogo(logo)"
+            class="absolute bottom-0 right-0 bg-gray-200 text-gray-800 text-xs rounded-full px-1"
+          >SVG</span>
         </div>
         <span class="text-sm mt-1 block text-center">{{ logo.name }}</span>
       </div>
@@ -52,7 +57,6 @@
         </label>
         <p class="text-xs text-gray-500">{{ t('imageOnly') }}</p>
         <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
-        <div v-else-if="selectedLogo" class="mt-2 text-sm text-gray-700">{{ selectedLogo.name }}</div>
       </div>
     </div>
   </div>
@@ -90,6 +94,10 @@ function onSelectLogo(logo) {
 }
 function isSelectedLogo(logo) {
   return props.selectedLogo && props.selectedLogo.path === logo.path
+}
+// Checks if a predefined logo is SVG format
+function isSvgLogo(logo) {
+  return logo.path.toLowerCase().endsWith('.svg')
 }
 function onFileSelect(event) {
   // Upload custom file, clear any predefined selection
