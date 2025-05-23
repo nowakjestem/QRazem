@@ -19,8 +19,11 @@ import (
 func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
    const paddingRate = 0.02
-   rawSquare := int(float64(w) * scale)
-   innerMax := rawSquare - int(float64(w)*paddingRate*2)
+   // Compute reserved square size (scale) and padding (percentage of width)
+   rawSF := float64(w) * scale
+   rawSquare := int(math.Ceil(rawSF))
+   pad := int(math.Ceil(float64(w) * paddingRate))
+   innerMax := rawSquare - pad*2
 
    icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
    if err != nil {
@@ -33,10 +36,10 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
        ratio := origH / origW
        if ratio <= 1 {
            logoW = innerMax
-           logoH = int(float64(innerMax) * ratio)
+           logoH = int(math.Round(float64(innerMax) * ratio))
        } else {
            logoH = innerMax
-           logoW = int(float64(innerMax) / ratio)
+           logoW = int(math.Round(float64(innerMax) / ratio))
        }
    } else {
        logoW, logoH = innerMax, innerMax
@@ -49,13 +52,17 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
 
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   sqOffsetX := (w - rawSquare) / 2
-   sqOffsetY := (h - rawSquare) / 2
-   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
+   // Determine reserved square position and clear background
+   sqOffsetX := int(math.Floor((float64(w) - rawSF) / 2))
+   sqOffsetY := int(math.Floor((float64(h) - rawSF) / 2))
+   draw.Draw(dst,
+       image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
        &image.Uniform{bgCol}, image.Point{}, draw.Src)
-   offsetX := (w - logoW) / 2
-   offsetY := (h - logoH) / 2
-   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
+   // Center logo inside reserved area with padding
+   offsetX := sqOffsetX + pad + int(math.Floor(float64(innerMax-logoW)/2))
+   offsetY := sqOffsetY + pad + int(math.Floor(float64(innerMax-logoH)/2))
+   draw.Draw(dst,
+       image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
        rgba, image.Point{}, draw.Over)
    return dst
 }
