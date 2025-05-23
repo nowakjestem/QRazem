@@ -13,7 +13,9 @@ import (
 )
 
 // generateQR creates a raster QR code image with specified colors and size.
-func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
+// generateQR creates a raster QR code image with specified colors and size,
+// and returns the module count (number of QR modules per side).
+func generateQR(code, qrCol, bgCol string, size int) (image.Image, int, error) {
    qrColor, err := parseHexColor(qrCol)
    if err != nil {
        qrColor = color.Black
@@ -28,7 +30,10 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, error) {
    }
    qr.BackgroundColor = bgColor
    qr.ForegroundColor = qrColor
-   return qr.Image(size), nil
+   // Determine module count from QR bitmap
+   bitmap := qr.Bitmap()
+   modules := len(bitmap)
+   return qr.Image(size), modules, nil
 }
 
 // generateSVG returns an SVG representation of the QR code, optionally embedding an SVG logo.

@@ -16,13 +16,20 @@ import (
 )
 
 // overlaySVG draws an SVG logo centered on the base QR code image.
-func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Color) image.Image {
+// modules: number of QR modules per side
+func overlaySVG(base image.Image, svgData []byte, modules int, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
    const paddingRate = 0.02
-   // Compute reserved square size (scale) and padding (percentage of width)
-   rawSF := float64(w) * scale
-   rawSquare := int(math.Ceil(rawSF))
-   pad := int(math.Ceil(float64(w) * paddingRate))
+   // Compute module pixel size and alignment parameters
+   moduleSizeF := float64(w) / float64(modules)
+   // Reserved square in module units
+   rawMod := int(math.Ceil(scale * float64(modules)))
+   rawSF := float64(rawMod) * moduleSizeF
+   rawSquare := int(math.Round(rawSF))
+   // Padding in module units
+   padMod := int(math.Ceil(paddingRate * float64(modules)))
+   padF := float64(padMod) * moduleSizeF
+   pad := int(math.Round(padF))
    innerMax := rawSquare - pad*2
 
    icon, err := oksvg.ReadIconStream(bytes.NewReader(svgData))
@@ -53,14 +60,14 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
    // Determine reserved square position and clear background
-   sqOffsetX := int(math.Floor((float64(w) - rawSF) / 2))
-   sqOffsetY := int(math.Floor((float64(h) - rawSF) / 2))
+   sqOffsetX := (w - rawSquare) / 2
+   sqOffsetY := (h - rawSquare) / 2
    draw.Draw(dst,
        image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
        &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Center logo inside reserved area with padding
-   offsetX := sqOffsetX + pad + int(math.Floor(float64(innerMax-logoW)/2))
-   offsetY := sqOffsetY + pad + int(math.Floor(float64(innerMax-logoH)/2))
+   offsetX := sqOffsetX + pad + (innerMax-logoW)/2
+   offsetY := sqOffsetY + pad + (innerMax-logoH)/2
    draw.Draw(dst,
        image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
        rgba, image.Point{}, draw.Over)
@@ -68,14 +75,20 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
 }
 
 // overlayRaster draws a raster logo centered on the base QR code image.
-func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.Color) image.Image {
+// modules: number of QR modules per side
+func overlayRaster(base image.Image, imgData []byte, modules int, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
    const paddingRate = 0.02
-   // Compute padding and reserved square size, rounding up for full coverage
-   padF := float64(w) * paddingRate
-   pad := int(math.Ceil(padF))
-   rawSF := float64(w) * scale
-   rawSquare := int(math.Ceil(rawSF))
+   // Compute module pixel size and alignment parameters
+   moduleSizeF := float64(w) / float64(modules)
+   // Reserved square in module units
+   rawMod := int(math.Ceil(scale * float64(modules)))
+   rawSF := float64(rawMod) * moduleSizeF
+   rawSquare := int(math.Round(rawSF))
+   // Padding in module units
+   padMod := int(math.Ceil(paddingRate * float64(modules)))
+   padF := float64(padMod) * moduleSizeF
+   pad := int(math.Round(padF))
    innerMax := rawSquare - pad*2
 
    img, _, err := image.Decode(bytes.NewReader(imgData))
@@ -110,8 +123,8 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
    // Determine logo dimensions
    logoW, logoH := scaled.Bounds().Dx(), scaled.Bounds().Dy()
    // Center logo inside reserved area with padding
-   offsetX := sqOffsetX + pad + int(math.Floor((float64(innerMax-logoW) / 2)))
-   offsetY := sqOffsetY + pad + int(math.Floor((float64(innerMax-logoH) / 2)))
+   offsetX := sqOffsetX + pad + (innerMax-logoW)/2
+   offsetY := sqOffsetY + pad + (innerMax-logoH)/2
    draw.Draw(dst,
        image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
        scaled, image.Point{}, draw.Over)

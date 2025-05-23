@@ -74,8 +74,8 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
    }
 
    // Raster output: generate raster QR code, optionally overlay logo
-   // Base QR image
-   img, err := generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
+   // Generate QR image and module count
+   img, modules, err := generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
    if err != nil {
        http.Error(w, err.Error(), http.StatusInternalServerError)
        return
@@ -93,9 +93,9 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
        ext := strings.ToLower(path.Ext(logoName))
        switch ext {
        case ".svg":
-           img = overlaySVG(img, svgData, logoScale, bgCol)
+           img = overlaySVG(img, svgData, modules, logoScale, bgCol)
        default:
-           img = overlayRaster(img, svgData, logoScale, bgCol)
+           img = overlayRaster(img, svgData, modules, logoScale, bgCol)
        }
    }
    // Encode to requested raster format
