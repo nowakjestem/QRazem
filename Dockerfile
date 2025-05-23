@@ -15,7 +15,7 @@
  RUN apk add --no-cache git && \
      go mod download
  COPY . ./
- RUN go build -o qrapp main.go
+ RUN go build -o qrapp .
 
  # Final stage
  FROM alpine:3.17
