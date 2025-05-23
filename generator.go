@@ -47,7 +47,7 @@ func generateSVG(code, qrCol, bgCol string, size int, svgLogo []byte, logoName s
 
    var sb strings.Builder
    sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>`)
-   sb.WriteString(fmt.Sprintf(`<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg">`, size, size))
+   sb.WriteString(fmt.Sprintf(`<svg width="%d" height="%d" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">`, size, size))
    sb.WriteString(fmt.Sprintf(`<rect width="100%%" height="100%%" fill="%s"/>`, bgCol))
    for y := 0; y < modules; y++ {
        for x := 0; x < modules; x++ {
@@ -64,6 +64,9 @@ func generateSVG(code, qrCol, bgCol string, size int, svgLogo []byte, logoName s
        enc := base64.StdEncoding.EncodeToString(svgLogo)
        rawSide := float64(size) * 0.24
        offset := (float64(size) - rawSide) / 2
+       sb.WriteString(fmt.Sprintf(
+           `<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>`,
+           offset, offset, rawSide, rawSide, bgCol))
        sb.WriteString(fmt.Sprintf(
            `<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" href="data:image/svg+xml;base64,%s" preserveAspectRatio="xMidYMid meet"/>`,
            offset, offset, rawSide, rawSide, enc))
