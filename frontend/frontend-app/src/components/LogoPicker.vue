@@ -39,7 +39,7 @@
       </div>
       <span class="text-md font-medium text-gray-800">{{ selectedLogo.name }}</span>
     </div>
-    <p class="text-sm text-gray-500">{{ t('orDragDrop') }}</p>
+    <p class="text-sm text-gray-500 text-center">{{ t('orDragDrop') }}</p>
     <div
       class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md cursor-pointer border-[#720546]"
       @drop.prevent="onFileDrop"
@@ -56,7 +56,10 @@
           <input type="file" accept="image/*" class="sr-only" @change="onFileSelect" />
         </label>
         <p class="text-xs text-gray-500">{{ t('imageOnly') }}</p>
-        <div v-if="logoFile" class="mt-2 text-sm text-gray-700">{{ logoFile.name }}</div>
+        <div v-if="logoFile" class="mt-2 flex items-center space-x-1 text-sm text-gray-700">
+          <span class="font-medium">{{ logoFile.name }}</span>
+          <span class="px-1 py-0.5 bg-green-100 text-green-800 text-xs rounded">{{ t('customLogo') }}</span>
+        </div>
       </div>
     </div>
   </div>

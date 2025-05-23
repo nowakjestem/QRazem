@@ -16,7 +16,8 @@ const messages = {
     preview: 'Preview',
     download: 'Download',
     imageOnly: 'Allowed formats: SVG, PNG, JPEG',
-    failed: 'Failed to generate QR code.'
+    failed: 'Failed to generate QR code.',
+    customLogo: 'Custom logo'
   },
   pl: {
     title: 'QRazem',
@@ -34,7 +35,8 @@ const messages = {
     preview: 'Podgląd',
     download: 'Pobierz',
     imageOnly: 'Dozwolone formaty: SVG, PNG, JPEG',
-    failed: 'Nie udało się wygenerować kodu QR.'
+    failed: 'Nie udało się wygenerować kodu QR.',
+    customLogo: 'Własne logo'
   }
 };
 
