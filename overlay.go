@@ -8,6 +8,7 @@ import (
    _ "image/gif"
    _ "image/png"
    _ "image/jpeg"
+   "math"
 
    "github.com/nfnt/resize"
    "github.com/srwiley/oksvg"
@@ -63,8 +64,12 @@ func overlaySVG(base image.Image, svgData []byte, scale float64, bgCol color.Col
 func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.Color) image.Image {
    w, h := base.Bounds().Dx(), base.Bounds().Dy()
    const paddingRate = 0.02
-   rawSquare := int(float64(w) * scale)
-   innerMax := rawSquare - int(float64(w)*paddingRate*2)
+   // Compute padding and reserved square size, rounding up for full coverage
+   padF := float64(w) * paddingRate
+   pad := int(math.Ceil(padF))
+   rawSF := float64(w) * scale
+   rawSquare := int(math.Ceil(rawSF))
+   innerMax := rawSquare - pad*2
 
    img, _, err := image.Decode(bytes.NewReader(imgData))
    if err != nil {
@@ -89,14 +94,18 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
 
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   sqOffsetX := (w - rawSquare) / 2
-   sqOffsetY := (h - rawSquare) / 2
-   draw.Draw(dst, image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
+   // Clear background under logo (reserved square)
+   sqOffsetX := int(math.Floor((float64(w) - rawSF) / 2))
+   sqOffsetY := int(math.Floor((float64(h) - rawSF) / 2))
+   draw.Draw(dst,
+       image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
        &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Draw logo centered
    logoW, logoH := scaled.Bounds().Dx(), scaled.Bounds().Dy()
-   offsetX := (w - logoW) / 2
-   offsetY := (h - logoH) / 2
-   draw.Draw(dst, image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
+   offsetX := int(math.Floor((float64(w) - float64(logoW)) / 2))
+   offsetY := int(math.Floor((float64(h) - float64(logoH)) / 2))
+   draw.Draw(dst,
+       image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
        scaled, image.Point{}, draw.Over)
    return dst
 }
