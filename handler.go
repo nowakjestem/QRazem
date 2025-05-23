@@ -3,10 +3,12 @@ package main
 import (
    "bytes"
    "encoding/json"
+   "image/color"
    "image/jpeg"
    "image/png"
    "io"
    "net/http"
+   "path"
    "strings"
 )
 
@@ -71,26 +73,41 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
        return
    }
 
-   // Raster output: generate final SVG (with logo) and rasterize
-   svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
+   // Raster output: generate raster QR code, optionally overlay logo
+   // Base QR image
+   img, err := generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
    if err != nil {
        http.Error(w, err.Error(), http.StatusInternalServerError)
        return
    }
-   img, err := rasterizeSVG(svgBytes, size)
-   if err != nil {
-       http.Error(w, err.Error(), http.StatusInternalServerError)
-       return
+   // Overlay logo if provided
+   if len(svgData) > 0 {
+       // determine background color for overlay clearing
+       bgCol, err := parseHexColor(qrReq.BgColor)
+       if err != nil {
+           // default to white background
+           bgCol = color.White
+       }
+       const logoScale = 0.24
+       // choose overlay method based on logo extension
+       ext := strings.ToLower(path.Ext(logoName))
+       switch ext {
+       case ".svg":
+           img = overlaySVG(img, svgData, logoScale, bgCol)
+       default:
+           img = overlayRaster(img, svgData, logoScale, bgCol)
+       }
    }
    // Encode to requested raster format
    var buf bytes.Buffer
-   if format == "jpg" || format == "jpeg" {
+   switch format {
+   case "jpg", "jpeg":
        w.Header().Set("Content-Type", "image/jpeg")
        if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
            return
        }
-   } else {
+   default:
        w.Header().Set("Content-Type", "image/png")
        if err := png.Encode(&buf, img); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
@@ -98,5 +115,7 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
        }
    }
    w.WriteHeader(http.StatusOK)
-   w.Write(buf.Bytes())
+   if _, err := w.Write(buf.Bytes()); err != nil {
+       // ignore write error
+   }
 }
