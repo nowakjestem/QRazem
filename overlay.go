@@ -101,9 +101,9 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
 
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Clear background under logo (reserved square)
-   sqOffsetX := int(math.Floor((float64(w) - rawSF) / 2))
-   sqOffsetY := int(math.Floor((float64(h) - rawSF) / 2))
+   // Clear background under logo (reserved square), centered with rawSquare
+   sqOffsetX := (w - rawSquare) / 2
+   sqOffsetY := (h - rawSquare) / 2
    draw.Draw(dst,
        image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
        &image.Uniform{bgCol}, image.Point{}, draw.Src)
