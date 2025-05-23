@@ -59,12 +59,19 @@ func overlaySVG(base image.Image, svgData []byte, modules int, scale float64, bg
 
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Determine reserved square position and clear background
+   // Determine reserved square position
    sqOffsetX := (w - rawSquare) / 2
    sqOffsetY := (h - rawSquare) / 2
-   draw.Draw(dst,
-       image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
-       &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Clear background under logo slightly beyond reserved square (add 2px margin)
+   const extraMargin = 2
+   mHalf := extraMargin / 2
+   clearRect := image.Rect(
+       sqOffsetX - mHalf,
+       sqOffsetY - mHalf,
+       sqOffsetX + rawSquare + mHalf,
+       sqOffsetY + rawSquare + mHalf,
+   )
+   draw.Draw(dst, clearRect, &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Center logo inside reserved area with padding
    offsetX := sqOffsetX + pad + (innerMax-logoW)/2
    offsetY := sqOffsetY + pad + (innerMax-logoH)/2
@@ -114,12 +121,19 @@ func overlayRaster(base image.Image, imgData []byte, modules int, scale float64,
 
    dst := image.NewRGBA(base.Bounds())
    draw.Draw(dst, base.Bounds(), base, image.Point{}, draw.Over)
-   // Clear background under logo (reserved square), centered with rawSquare
+   // Determine reserved square position
    sqOffsetX := (w - rawSquare) / 2
    sqOffsetY := (h - rawSquare) / 2
-   draw.Draw(dst,
-       image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
-       &image.Uniform{bgCol}, image.Point{}, draw.Src)
+   // Clear background under logo slightly beyond reserved square (add 2px margin)
+   const extraMargin = 2
+   mHalf := extraMargin / 2
+   clearRect := image.Rect(
+       sqOffsetX - mHalf,
+       sqOffsetY - mHalf,
+       sqOffsetX + rawSquare + mHalf,
+       sqOffsetY + rawSquare + mHalf,
+   )
+   draw.Draw(dst, clearRect, &image.Uniform{bgCol}, image.Point{}, draw.Src)
    // Determine logo dimensions
    logoW, logoH := scaled.Bounds().Dx(), scaled.Bounds().Dy()
    // Center logo inside reserved area with padding

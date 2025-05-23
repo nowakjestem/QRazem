@@ -26,7 +26,7 @@ func generateQR(code, qrCol, bgCol string, size int) (image.Image, int, error) {
    }
    qr, err := qrcode.New(code, qrcode.Highest)
    if err != nil {
-       return nil, err
+       return nil, 0, err
    }
    qr.BackgroundColor = bgColor
    qr.ForegroundColor = qrColor
