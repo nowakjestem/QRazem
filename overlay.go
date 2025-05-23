@@ -107,10 +107,11 @@ func overlayRaster(base image.Image, imgData []byte, scale float64, bgCol color.
    draw.Draw(dst,
        image.Rect(sqOffsetX, sqOffsetY, sqOffsetX+rawSquare, sqOffsetY+rawSquare),
        &image.Uniform{bgCol}, image.Point{}, draw.Src)
-   // Draw logo centered
+   // Determine logo dimensions
    logoW, logoH := scaled.Bounds().Dx(), scaled.Bounds().Dy()
-   offsetX := int(math.Floor((float64(w) - float64(logoW)) / 2))
-   offsetY := int(math.Floor((float64(h) - float64(logoH)) / 2))
+   // Center logo inside reserved area with padding
+   offsetX := sqOffsetX + pad + int(math.Floor((float64(innerMax-logoW) / 2)))
+   offsetY := sqOffsetY + pad + int(math.Floor((float64(innerMax-logoH) / 2)))
    draw.Draw(dst,
        image.Rect(offsetX, offsetY, offsetX+logoW, offsetY+logoH),
        scaled, image.Point{}, draw.Over)
