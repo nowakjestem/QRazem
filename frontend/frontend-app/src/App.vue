@@ -36,6 +36,12 @@ const logoIsRaster = computed(() => {
   }
   return false
 })
+// If raster logo is selected, enforce non-SVG format
+watch(logoIsRaster, (isRaster) => {
+  if (isRaster && downloadFormat.value === 'svg') {
+    downloadFormat.value = 'png'
+  }
+})
 
 
 
@@ -119,10 +125,14 @@ async function generateQr() {
             <div class="relative mt-1">
               <select
                 v-model="downloadFormat"
-                :disabled="logoIsRaster && downloadFormat==='svg'"
-                class="w-full pl-3 pr-8 py-2 border border-gray-300 bg-white rounded-md appearance-none focus:outline-none focus:border-[#720546] focus:ring-1 focus:ring-[#720546] disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full pl-3 pr-8 py-2 border border-gray-300 bg-white rounded-md appearance-none focus:outline-none focus:border-[#720546] focus:ring-1 focus:ring-[#720546]"
               >
-                <option v-for="fmt in formats" :key="fmt" :value="fmt">
+                <option
+                  v-for="fmt in formats"
+                  :key="fmt"
+                  :value="fmt"
+                  :disabled="logoIsRaster && fmt === 'svg'"
+                >
                   {{ fmt.toUpperCase() }}
                 </option>
               </select>
