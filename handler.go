@@ -3,12 +3,10 @@ package main
 import (
    "bytes"
    "encoding/json"
-   "image/color"
    "image/jpeg"
    "image/png"
    "io"
    "net/http"
-   "path"
    "strings"
 )
 
