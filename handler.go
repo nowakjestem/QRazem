@@ -20,13 +20,11 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
        return
    }
 
+   // Parse request payload (JSON or multipart with optional logo)
    var qrReq QRRequest
    var svgData []byte
    var logoName string
    const defaultSize = 1024
-   var err error
-   var qrImg image.Image
-
    if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
        reader, err := r.MultipartReader()
        if err != nil {
@@ -38,33 +36,15 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
            if err == io.EOF {
                break
            }
-           if part.FormName() == "svg_logo" && part.FileName() != "" {
-               svgData, _ = io.ReadAll(part)
-               logoName = part.FileName()
-           } else if part.FormName() == "payload" {
+           switch part.FormName() {
+           case "svg_logo":
+               if part.FileName() != "" {
+                   svgData, _ = io.ReadAll(part)
+                   logoName = part.FileName()
+               }
+           case "payload":
                payload, _ := io.ReadAll(part)
                json.Unmarshal(payload, &qrReq)
-           }
-       }
-       size := qrReq.Size
-       if size <= 0 {
-           size = defaultSize
-       }
-       qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
-       if err != nil {
-           http.Error(w, err.Error(), http.StatusInternalServerError)
-           return
-       }
-       if len(svgData) > 0 {
-           bgCol, err2 := parseHexColor(qrReq.BgColor)
-           if err2 != nil {
-               bgCol = color.White
-           }
-           ext := strings.ToLower(path.Ext(logoName))
-           if ext == ".svg" {
-               qrImg = overlaySVG(qrImg, svgData, 0.24, bgCol)
-           } else {
-               qrImg = overlayRaster(qrImg, svgData, 0.24, bgCol)
            }
        }
    } else {
@@ -72,47 +52,53 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
            http.Error(w, "Bad JSON: "+err.Error(), http.StatusBadRequest)
            return
        }
-       size := qrReq.Size
-       if size <= 0 {
-           size = defaultSize
-       }
-       qrImg, err = generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
-       if err != nil {
-           http.Error(w, err.Error(), http.StatusInternalServerError)
-           return
-       }
    }
 
-   format := strings.ToLower(qrReq.Format)
+   // Determine output size
    size := qrReq.Size
    if size <= 0 {
        size = defaultSize
    }
 
-   switch format {
-   case "svg":
-       svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
-       if err != nil {
-           http.Error(w, err.Error(), http.StatusInternalServerError)
-           return
-       }
+   // Generate SVG (with optional embedded logo)
+   svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
+   if err != nil {
+       http.Error(w, err.Error(), http.StatusInternalServerError)
+       return
+   }
+
+   // Respond in requested format
+   format := strings.ToLower(qrReq.Format)
+   if format == "svg" {
        w.Header().Set("Content-Type", "image/svg+xml")
        w.Write(svgBytes)
+       return
+   }
+
+   // Raster formats: convert SVG to image.Image
+   img, err := rasterizeSVG(svgBytes, size)
+   if err != nil {
+       http.Error(w, err.Error(), http.StatusInternalServerError)
+       return
+   }
+   switch format {
    case "jpg", "jpeg":
        w.Header().Set("Content-Type", "image/jpeg")
-       buf := new(bytes.Buffer)
-       if err := jpeg.Encode(buf, qrImg, &jpeg.Options{Quality: 80}); err != nil {
+       var buf bytes.Buffer
+       if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
            return
        }
+       w.WriteHeader(http.StatusOK)
        w.Write(buf.Bytes())
    default:
        w.Header().Set("Content-Type", "image/png")
-       buf := new(bytes.Buffer)
-       if err := png.Encode(buf, qrImg); err != nil {
+       var buf bytes.Buffer
+       if err := png.Encode(&buf, img); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
            return
        }
+       w.WriteHeader(http.StatusOK)
        w.Write(buf.Bytes())
    }
 }
