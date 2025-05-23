@@ -73,37 +73,28 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
        return
    }
 
-   // Raster output: generate raster QR, then overlay logo
-   qrImg, err := generateQR(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size)
+   // Raster output: generate final SVG (with logo) and rasterize
+   svgBytes, err := generateSVG(qrReq.Text, qrReq.QRColor, qrReq.BgColor, size, svgData, logoName)
    if err != nil {
        http.Error(w, err.Error(), http.StatusInternalServerError)
        return
    }
-   // Overlay logo if provided
-   if len(svgData) > 0 {
-       bgCol, colErr := parseHexColor(qrReq.BgColor)
-       if colErr != nil {
-           bgCol = color.White
-       }
-       ext := strings.ToLower(path.Ext(logoName))
-       if ext == ".svg" {
-           qrImg = overlaySVG(qrImg, svgData, 0.24, bgCol)
-       } else {
-           qrImg = overlayRaster(qrImg, svgData, 0.24, bgCol)
-       }
+   img, err := rasterizeSVG(svgBytes, size)
+   if err != nil {
+       http.Error(w, err.Error(), http.StatusInternalServerError)
+       return
    }
-   // Encode to PNG or JPEG
+   // Encode to requested raster format
    var buf bytes.Buffer
-   switch format {
-   case "jpg", "jpeg":
+   if format == "jpg" || format == "jpeg" {
        w.Header().Set("Content-Type", "image/jpeg")
-       if err := jpeg.Encode(&buf, qrImg, &jpeg.Options{Quality: 80}); err != nil {
+       if err := jpeg.Encode(&buf, img, &jpeg.Options{Quality: 80}); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
            return
        }
-   default:
+   } else {
        w.Header().Set("Content-Type", "image/png")
-       if err := png.Encode(&buf, qrImg); err != nil {
+       if err := png.Encode(&buf, img); err != nil {
            http.Error(w, "encoding error", http.StatusInternalServerError)
            return
        }

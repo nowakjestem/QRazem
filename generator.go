@@ -5,6 +5,7 @@ import (
    "fmt"
    "image"
    "image/color"
+   "math"
    "path"
    "strings"
 
@@ -60,26 +61,48 @@ func generateSVG(code, qrCol, bgCol string, size int, svgLogo []byte, logoName s
            }
        }
    }
-   if len(svgLogo) > 0 && strings.ToLower(path.Ext(logoName)) == ".svg" {
+   if len(svgLogo) > 0 {
+       // Embed logo (SVG or raster) with background clearing and padding
        enc := base64.StdEncoding.EncodeToString(svgLogo)
        // reserved square for logo: 24% of QR code size
-       rawSquare := float64(size) * 0.24
-       // padding around logo: 2% of QR code size
-       padding := float64(size) * 0.02
-       // actual logo dimensions inside padding
-       logoSize := rawSquare - 2*padding
+       rawSF := float64(size) * 0.24
+       rawSquare := int(math.Ceil(rawSF))
+       // padding: 2% of QR code size
+       padF := float64(size) * 0.02
+       pad := int(math.Ceil(padF))
+       // inner max dimension for logo
+       innerMax := rawSquare - pad*2
        // top-left of reserved square
-       sqOffset := (float64(size) - rawSquare) / 2
-       // top-left of logo inside reserved square
-       logoOffset := sqOffset + padding
-       // clear background under reserved area
+       sqOffsetF := (float64(size) - rawSF) / 2
+       sqOffset := int(math.Floor(sqOffsetF))
+       // logo size and offset inside reserved square
+       var logoW, logoH int
+       ext := strings.ToLower(path.Ext(logoName))
+       // preserve aspect ratio
+       if ext == ".svg" {
+           logoW = innerMax
+           logoH = innerMax
+       } else {
+           logoW = innerMax
+           logoH = innerMax
+       }
+       logoOffsetX := sqOffset + pad + int(math.Floor(float64(innerMax-logoW)/2))
+       logoOffsetY := sqOffset + pad + int(math.Floor(float64(innerMax-logoH)/2))
+       // clear background under reserved square
        sb.WriteString(fmt.Sprintf(
-           `<rect x="%.2f" y="%.2f" width="%.2f" height="%.2f" fill="%s"/>`,
-           sqOffset, sqOffset, rawSquare, rawSquare, bgCol))
-       // embed logo image with padding
+           `<rect x="%.0f" y="%.0f" width="%d" height="%d" fill="%s"/>`,
+           sqOffsetF, sqOffsetF, rawSquare, rawSquare, bgCol))
+       // determine MIME type
+       mime := "image/svg+xml"
+       if ext == ".png" {
+           mime = "image/png"
+       } else if ext == ".jpg" || ext == ".jpeg" {
+           mime = "image/jpeg"
+       }
+       // embed logo image
        sb.WriteString(fmt.Sprintf(
-           `<image x="%.2f" y="%.2f" width="%.2f" height="%.2f" href="data:image/svg+xml;base64,%s" preserveAspectRatio="xMidYMid meet"/>`,
-           logoOffset, logoOffset, logoSize, logoSize, enc))
+           `<image x="%d" y="%d" width="%d" height="%d" href="data:%s;base64,%s" preserveAspectRatio="xMidYMid meet"/>`,
+           logoOffsetX, logoOffsetY, logoW, logoH, mime, enc))
    }
    sb.WriteString(`</svg>`)
    return []byte(sb.String()), nil
